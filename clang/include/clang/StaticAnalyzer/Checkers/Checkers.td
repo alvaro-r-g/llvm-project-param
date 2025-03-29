@@ -808,6 +808,11 @@ def SmartPtrChecker: Checker<"SmartPtr">,
   Dependencies<[SmartPtrModeling]>,
   Documentation<HasDocumentation>;
 
+// TODO: This should not be in the C++ section, create a new one
+def HTMChecker : Checker<"HTMChecker">,
+  HelpText<"Check for incorrect HTM section delimitation">,
+  Documentation<HasDocumentation>;
+
 } // end: "alpha.cplusplus"
 
 
