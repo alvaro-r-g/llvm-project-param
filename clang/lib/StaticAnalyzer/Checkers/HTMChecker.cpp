@@ -83,7 +83,7 @@ void HTMChecker::checkEndFunction(const ReturnStmt *RS,
 
 void HTMChecker::reportDoubleBegin(const CallEvent &Call,
                                    CheckerContext &C) const {
-  ExplodedNode *ErrNode = C.generateErrorNode();
+  ExplodedNode *ErrNode = C.generateNonFatalErrorNode();
   if (!ErrNode)
     return;
 
@@ -98,7 +98,7 @@ void HTMChecker::reportDoubleBegin(const CallEvent &Call,
 
 void HTMChecker::reportUnmatchedEnd(const CallEvent &Call,
                                     CheckerContext &C) const {
-  ExplodedNode *ErrNode = C.generateErrorNode();
+  ExplodedNode *ErrNode = C.generateNonFatalErrorNode();
   if (!ErrNode)
     return;
 
@@ -110,7 +110,7 @@ void HTMChecker::reportUnmatchedEnd(const CallEvent &Call,
 }
 
 void HTMChecker::reportUnmatchedBegin(const Stmt *S, CheckerContext &C) const {
-  ExplodedNode *ErrNode = C.generateErrorNode();
+  ExplodedNode *ErrNode = C.generateNonFatalErrorNode();
   if (!ErrNode)
     return;
 
@@ -125,7 +125,7 @@ void HTMChecker::reportUnmatchedBegin(const Stmt *S, CheckerContext &C) const {
 
 void HTMChecker::reportCallInTransaction(const CallEvent &Call,
                                          CheckerContext &C) const {
-  ExplodedNode *ErrNode = C.generateErrorNode();
+  ExplodedNode *ErrNode = C.generateNonFatalErrorNode();
   if (!ErrNode)
     return;
 
