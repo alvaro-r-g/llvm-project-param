@@ -21,13 +21,13 @@ class HTMChecker : public Checker<check::PreCall, check::EndFunction,
   const BugType CallInTransaction{this, "Call in transaction"};
   const BugType MaxStatementCountExceeded{this, "Statement count exceeded"};
 
-  static constexpr unsigned MAX_STMTS = 50;
+  static constexpr unsigned MAX_STMTS = 100;
 
   void reportDoubleBegin(const CallEvent &Call, CheckerContext &C) const;
   void reportUnmatchedEnd(const CallEvent &Call, CheckerContext &C) const;
   void reportUnmatchedBegin(const Stmt *S, CheckerContext &C) const;
   void reportCallInTransaction(const CallEvent &Call, CheckerContext &C) const;
-  void reportInstructionCountExceeded(const CallEvent &Call, CheckerContext &C,
+  void reportStatementCountExceeded(const CallEvent &Call, CheckerContext &C,
                                       unsigned Count) const;
 
 public:
@@ -39,12 +39,12 @@ public:
 } // end anonymous namespace
 
 REGISTER_TRAIT_WITH_PROGRAMSTATE(InTransactionState, bool);
-REGISTER_TRAIT_WITH_PROGRAMSTATE(InstructionCountState, unsigned);
+REGISTER_TRAIT_WITH_PROGRAMSTATE(StatementCountState, unsigned);
 
 void HTMChecker::checkPreCall(const CallEvent &Call, CheckerContext &C) const {
   ProgramStateRef State = C.getState();
   const bool inTransaction = State->get<InTransactionState>();
-  const unsigned instructionCount = State->get<InstructionCountState>();
+  const unsigned statementCount = State->get<StatementCountState>();
 
   const bool isBegin = BeginFn.matches(Call);
   const bool isEnd = EndFn.matches(Call);
@@ -59,7 +59,7 @@ void HTMChecker::checkPreCall(const CallEvent &Call, CheckerContext &C) const {
     }
 
     State = State->set<InTransactionState>(true);
-    State = State->set<InstructionCountState>(0);
+    State = State->set<StatementCountState>(0);
     C.addTransition(State);
   } else if (isEnd) {
     if (!inTransaction) {
@@ -68,11 +68,11 @@ void HTMChecker::checkPreCall(const CallEvent &Call, CheckerContext &C) const {
     }
 
     State = State->set<InTransactionState>(false);
-    State = State->set<InstructionCountState>(0);
+    State = State->set<StatementCountState>(0);
     C.addTransition(State);
 
-    if (instructionCount > MAX_STMTS) {
-      reportInstructionCountExceeded(Call, C, instructionCount);
+    if (statementCount > MAX_STMTS) {
+      reportStatementCountExceeded(Call, C, statementCount);
     }
   } else {
     if (inTransaction) {
@@ -94,9 +94,9 @@ void HTMChecker::checkPostStmt(const Stmt *S, CheckerContext &C) const {
     }
   }
 
-  unsigned count = State->get<InstructionCountState>();
+  unsigned count = State->get<StatementCountState>();
   count++;
-  State = State->set<InstructionCountState>(count);
+  State = State->set<StatementCountState>(count);
   C.addTransition(State);
 }
 
@@ -176,7 +176,7 @@ void HTMChecker::reportCallInTransaction(const CallEvent &Call,
   C.emitReport(std::move(R));
 }
 
-void HTMChecker::reportInstructionCountExceeded(const CallEvent &Call,
+void HTMChecker::reportStatementCountExceeded(const CallEvent &Call,
                                                 CheckerContext &C,
                                                 unsigned Count) const {
   ExplodedNode *ErrNode = C.generateErrorNode();
@@ -184,7 +184,7 @@ void HTMChecker::reportInstructionCountExceeded(const CallEvent &Call,
     return;
 
   std::string Msg = "Transaction contains " + std::to_string(Count) +
-                    " instructions (max is " + std::to_string(MAX_STMTS) + ")";
+                    " statements (max is " + std::to_string(MAX_STMTS) + ")";
   auto R = std::make_unique<PathSensitiveBugReport>(MaxStatementCountExceeded,
                                                     Msg, ErrNode);
   R->addRange(Call.getSourceRange());
